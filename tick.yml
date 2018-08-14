@@ -1,0 +1,116 @@
+version: '3.5'
+
+services:
+
+# SSL + Basic HTTP Auth
+  traefik:
+   image: traefik:1.6
+   #command:
+   ports:
+    - '80:80'
+    - '443:443'
+    - '8080:8080'
+   volumes:
+    - /var/run/docker.sock:/var/run/docker.sock 
+    - /data/conf/traefik.toml:/traefik.toml
+    - /data/conf/acme.json:/acme.json
+   networks:
+    - front
+    - back
+   deploy:
+    mode: replicated
+    replicas: 1
+    restart_policy:
+     condition: on-failure
+    placement:
+     constraints: [node.role == manager]
+    labels:
+     - "traefik.enable=false"
+
+  # Define a Telegraf service
+  telegraf:
+    image: telegraf:1.7.2
+    volumes:
+      - /data/conf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    #ports:
+    #  - "8092:8092/udp"
+    #  - "8094:8094"
+    #  - "8125:8125/udp"
+    networks:
+     - back
+
+  # Define an InfluxDB service
+  influxdb:
+    image: influxdb:1.6.0
+    volumes:
+      - /data/influxdb:/var/lib/influxdb
+    ports:
+      - "8086:8086"
+    networks:
+     - front
+     - back
+    deploy:
+     restart_policy:
+      condition: on-failure
+     labels:
+      - "traefik.enable=false"
+    
+  # Define a Chronograf service
+  chronograf:
+    image: chronograf:1.6.1
+    environment:
+      INFLUXDB_URL: http://influxdb:8086
+      KAPACITOR_URL: http://kapacitor:9092
+    #ports:
+    #  - "8888:8888"
+    networks:
+     - back
+    deploy:
+     restart_policy:
+      condition: on-failure
+     labels:
+      - "traefik.port=8888"
+      - "traefik.backend=chronograf"
+      - "traefik.frontend.rule=Host:YOUR_URL_HERE"
+      #- "traefik.protocol=http"
+      #- "traefik.frontend.entryPoints=https"
+      #- "traefik.docker.network=back"
+      - "traefik.enable=true"
+
+  # Define a Kapacitor service
+  kapacitor:
+    image: kapacitor:1.5.0
+    environment:
+      KAPACITOR_HOSTNAME: kapacitor
+      KAPACITOR_INFLUXDB_0_URLS_0: http://influxdb:8086
+    networks:
+     - back
+   # ports:
+   #   - "9092:9092"
+    deploy:
+     restart_policy:
+      condition: on-failure
+     labels:
+      - "traefik.enable=false"
+
+#  minio1:
+#   image: minio/minio
+#   volumes:
+#    - minio1:/data/minio
+   #ports:
+   # - "9001:9000"
+#   environment:
+#    MINIO_ACCESS_KEY: abcdesf
+#    MINIO_SECRET_KEY: ijklkmeroispol
+#   command: server /data/minio
+#   networks:
+#    - back
+
+networks:
+ front:
+  driver: overlay
+ back:
+  driver: overlay
+
+#volumes:
+# minio1:

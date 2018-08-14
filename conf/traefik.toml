@@ -1,0 +1,61 @@
+debug = true 
+logLevel = "DEBUG"
+defaultEntryPoints = ["https","http"]
+
+[entryPoints]
+  [entryPoints.http]
+  address = ":80"
+    [entryPoints.http.redirect]
+    entryPoint = "https"
+  [entryPoints.https]
+  address = ":443"
+  [entryPoints.https.tls]
+   [entryPoints.https.auth.basic]
+    users = ["YOUR_LOGIN:_YOUR_PASSWORD_HERE"]
+ [entryPoints.traefik]
+  address=":8080"
+  [entryPoints.traefik.auth.basic]
+   users = ["YOUR_LOGIN:YOUR_PASSWORD_HERE"]
+
+[docker]
+ endpoint = "unix:///var/run/docker.sock"
+ domain = "YOUR_DOMAIN"
+ watch = true
+ exposedByDefault = false
+ swarmMode = true
+
+
+[acme]
+ email = "YOUR EMAIL HERE"
+ storage = "acme.json"
+ entryPoint = "https"
+ onHostRule = true
+ onDemand = false
+ [acme.httpChallenge]
+  entryPoint = "http"
+
+# API definition
+[api]
+  # Name of the related entry point
+  #
+  # Optional
+  # Default: "traefik"
+  #
+  entryPoint = "traefik"
+
+  # Enabled Dashboard
+  #
+  # Optional
+  # Default: true
+  #
+  dashboard = true
+
+  # Enable debug mode.
+  # This will install HTTP handlers to expose Go expvars under /debug/vars and
+  # pprof profiling data under /debug/pprof.
+  # Additionally, the log level will be set to DEBUG.
+  #
+  # Optional
+  # Default: false
+  #
+  debug = true
